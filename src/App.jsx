@@ -1,247 +1,102 @@
-import { useState, useRef, useEffect } from "react";
+import { useState } from "react";
+import Home from "./screens/Home.jsx";
+import GuestEntry from "./screens/GuestEntry.jsx";
+import BingoGrid from "./screens/BingoGrid.jsx";
+import MissionScreen from "./screens/MissionScreen.jsx";
+import WinnerScreen from "./screens/WinnerScreen.jsx";
 
-const MISSIONS = [
-  { id: 1, emoji: "💑", title: "Com os Noivos", desc: "Tire uma foto com os noivos" },
-  { id: 2, emoji: "🤵", title: "Com os Padrinhos", desc: "Tire uma foto com os padrinhos" },
-  { id: 3, emoji: "🎂", title: "Comendo o Bolo", desc: "Registre o momento de provar o bolo" },
-  { id: 4, emoji: "💃", title: "Na Pista de Dança", desc: "Uma foto arrasando na pista!" },
-  { id: 5, emoji: "🥂", title: "Brinde!", desc: "Foto no momento do brinde especial" },
-  { id: 6, emoji: "🌸", title: "Parte Favorita", desc: "Foto da decoração que você mais amou" },
-  { id: 7, emoji: "🤣", title: "Momento Engraçado", desc: "Capture algo divertido da festa" },
-  { id: 8, emoji: "🤗", title: "Com a Família", desc: "Uma foto com familiares queridos" },
-  { id: 9, emoji: "🍽️", title: "Prato da Festa", desc: "Foto do seu prato favorito do buffet" },
+export const MISSIONS = [
+  { id: 1, emoji: "💑", title: "Com os Noivos",      desc: "Tire uma foto com João e Camila. Esse registro é especial demais!", type: "photo" },
+  { id: 2, emoji: "💌", title: "Mensagem de Amor",   desc: "Grave um vídeo mandando uma mensagem especial para os noivos. Do coração!", type: "video" },
+  { id: 3, emoji: "📝", title: "Conselho dos Noivos",desc: "Preencha o cartãozinho com seu conselho e tire uma foto segurando ele.", type: "photo" },
+  { id: 4, emoji: "💃", title: "Na Pista!",           desc: "Mostre seus passos! Foto ou vídeo arrasando na pista de dança.", type: "any" },
+  { id: 5, emoji: "🥂", title: "Brinde!",             desc: "Capture o momento do brinde especial. Saúde ao amor deles!", type: "photo" },
+  { id: 6, emoji: "🤵", title: "Com os Padrinhos",   desc: "Tire uma foto com os padrinhos da festa.", type: "photo" },
+  { id: 7, emoji: "🎂", title: "Hora do Bolo",        desc: "Registre esse momento delicioso! Foto comendo o bolo dos noivos.", type: "photo" },
+  { id: 8, emoji: "🤣", title: "Momento Engraçado",  desc: "Capture algo divertido e inesquecível da festa!", type: "any" },
+  { id: 9, emoji: "❤️", title: "Selfie em Grupo",    desc: "Selfie criativa com pelo menos 3 convidados. Quanto mais gente, melhor!", type: "photo" },
 ];
 
-const STORAGE_KEY = "bingo_festa_progress";
-
-function loadProgress() {
-  try {
-    const saved = localStorage.getItem(STORAGE_KEY);
-    return saved ? JSON.parse(saved) : {};
-  } catch {
-    return {};
-  }
+function getKey(name) {
+  return "cej_bingo_" + name.toLowerCase().replace(/\s+/g, "_");
 }
 
-function saveProgress(data) {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+function loadProgress(name) {
+  try { return JSON.parse(localStorage.getItem(getKey(name))) || {}; }
+  catch { return {}; }
+}
+
+function saveProgress(name, data) {
+  try { localStorage.setItem(getKey(name), JSON.stringify(data)); } catch {}
+}
+
+// ── Google Drive upload via Apps Script ────────────────────────────────────
+const DRIVE_URL = import.meta.env.VITE_DRIVE_UPLOAD_URL || "";
+
+async function uploadToDrive(file, guestName, mission) {
+  if (!DRIVE_URL) { await new Promise(r => setTimeout(r, 1400)); return; }
+  const b64 = await new Promise((res, rej) => {
+    const fr = new FileReader();
+    fr.onload  = () => res(fr.result.split(",")[1]);
+    fr.onerror = rej;
+    fr.readAsDataURL(file);
+  });
+  const ext = file.name.split(".").pop();
+  const res = await fetch(DRIVE_URL, {
+    method: "POST",
+    body: JSON.stringify({
+      fileName: `${guestName}_M${mission.id}_${mission.title.replace(/\s+/g,"_")}_${Date.now()}.${ext}`,
+      mimeType: file.type,
+      data: b64,
+      guestName,
+      missionTitle: mission.title,
+    }),
+  });
+  if (!res.ok) throw new Error("upload failed");
 }
 
 export default function App() {
-  const [screen, setScreen] = useState("home"); // home | bingo | mission | winner
-  const [progress, setProgress] = useState(loadProgress);
-  const [selectedMission, setSelectedMission] = useState(null);
-  const [previewPhoto, setPreviewPhoto] = useState(null);
-  const [showSeal, setShowSeal] = useState(false);
-  const [confetti, setConfetti] = useState([]);
-  const fileInputRef = useRef();
+  const [screen,   setScreen]   = useState("home");
+  const [guest,    setGuest]    = useState("");
+  const [progress, setProgress] = useState({});
+  const [mission,  setMission]  = useState(null);
+  const [status,   setStatus]   = useState(null); // null|uploading|success|error
 
-  const completed = Object.keys(progress).filter((k) => progress[k]).length;
-  const total = MISSIONS.length;
-  const allDone = completed === total;
+  const completed = Object.values(progress).filter(Boolean).length;
+  const allDone   = completed === MISSIONS.length;
 
-  useEffect(() => {
-    saveProgress(progress);
-    if (allDone && screen === "bingo") {
-      setTimeout(() => {
-        setScreen("winner");
-        launchConfetti();
-      }, 400);
-    }
-  }, [progress]);
-
-  function launchConfetti() {
-    const pieces = Array.from({ length: 60 }, (_, i) => ({
-      id: i,
-      x: Math.random() * 100,
-      delay: Math.random() * 2,
-      color: ["#f9c74f", "#f3722c", "#f8961e", "#90be6d", "#43aa8b", "#577590", "#f94144"][
-        Math.floor(Math.random() * 7)
-      ],
-      size: 6 + Math.random() * 10,
-      rotate: Math.random() * 360,
-    }));
-    setConfetti(pieces);
-  }
-
-  function handleMissionClick(mission) {
-    setSelectedMission(mission);
-    setPreviewPhoto(null);
-    setScreen("mission");
-  }
-
-  function handleFileChange(e) {
-    const file = e.target.files[0];
-    if (!file) return;
-    const reader = new FileReader();
-    reader.onload = (ev) => setPreviewPhoto(ev.target.result);
-    reader.readAsDataURL(file);
-  }
-
-  function handleComplete() {
-    setProgress((prev) => ({ ...prev, [selectedMission.id]: true }));
+  function enterGuest(name) {
+    setGuest(name);
+    setProgress(loadProgress(name));
     setScreen("bingo");
-    setSelectedMission(null);
-    setPreviewPhoto(null);
   }
 
-  function handleShowSeal() {
-    setShowSeal(true);
+  function clickMission(m) {
+    if (progress[m.id]) return;
+    setMission(m); setStatus(null); setScreen("mission");
   }
 
-  // ── HOME ──────────────────────────────────────────────────────────────────
-  if (screen === "home") {
-    return (
-      <div className="screen home-screen">
-        <div className="home-petals">
-          {["🌸", "🌺", "✨", "🌼", "💫", "🌸", "✨"].map((e, i) => (
-            <span key={i} className="petal" style={{ "--i": i }}>{e}</span>
-          ))}
-        </div>
-        <div className="home-content">
-          <div className="home-badge">Foto Bingo</div>
-          <h1 className="home-title">Bingo<br />de Fotos!</h1>
-          <p className="home-sub">
-            Complete todas as missões,<br />
-            ganhe seu <strong>selo especial</strong> 🎖️<br />
-            e leve uma <strong>lembraninha!</strong> 🎁
-          </p>
-          <div className="home-stats">
-            <span>{total} missões para completar</span>
-          </div>
-          <button className="btn-primary" onClick={() => setScreen("bingo")}>
-            Começar a Jogar ✨
-          </button>
-        </div>
-      </div>
-    );
+  async function submitMedia(file) {
+    setStatus("uploading");
+    try {
+      await uploadToDrive(file, guest, mission);
+      setStatus("success");
+    } catch {
+      setStatus("error");
+    }
+    const next = { ...progress, [mission.id]: true };
+    setProgress(next);
+    saveProgress(guest, next);
+    setTimeout(() => { setScreen("bingo"); setMission(null); setStatus(null); }, 1800);
   }
 
-  // ── WINNER ────────────────────────────────────────────────────────────────
-  if (screen === "winner") {
-    return (
-      <div className="screen winner-screen">
-        {confetti.map((p) => (
-          <div
-            key={p.id}
-            className="confetti-piece"
-            style={{
-              left: `${p.x}%`,
-              animationDelay: `${p.delay}s`,
-              backgroundColor: p.color,
-              width: p.size,
-              height: p.size,
-              transform: `rotate(${p.rotate}deg)`,
-            }}
-          />
-        ))}
-        <div className="winner-content">
-          <div className="winner-crown">👑</div>
-          <h1 className="winner-title">Parabéns!</h1>
-          <p className="winner-sub">Você completou todas as missões!</p>
-
-          {!showSeal ? (
-            <button className="btn-seal" onClick={handleShowSeal}>
-              Revelar meu Selo 🎖️
-            </button>
-          ) : (
-            <div className="seal-container">
-              <div className="seal">
-                <div className="seal-inner">
-                  <div className="seal-star">⭐</div>
-                  <div className="seal-text-top">BINGO</div>
-                  <div className="seal-emoji">🏆</div>
-                  <div className="seal-text-bottom">COMPLETO</div>
-                </div>
-              </div>
-              <p className="seal-instruction">
-                📲 Mostre esse selo para a gente<br />e ganhe sua <strong>lembrancinha!</strong> 🎁
-              </p>
-            </div>
-          )}
-        </div>
-      </div>
-    );
-  }
-
-  // ── MISSION ───────────────────────────────────────────────────────────────
-  if (screen === "mission" && selectedMission) {
-    return (
-      <div className="screen mission-screen">
-        <button className="btn-back" onClick={() => { setScreen("bingo"); setPreviewPhoto(null); }}>
-          ← Voltar
-        </button>
-        <div className="mission-card-big">
-          <div className="mission-emoji-big">{selectedMission.emoji}</div>
-          <h2 className="mission-title-big">{selectedMission.title}</h2>
-          <p className="mission-desc">{selectedMission.desc}</p>
-        </div>
-
-        {previewPhoto ? (
-          <div className="photo-preview-wrap">
-            <img src={previewPhoto} alt="preview" className="photo-preview" />
-            <div className="photo-actions">
-              <button className="btn-secondary" onClick={() => setPreviewPhoto(null)}>
-                Trocar foto
-              </button>
-              <button className="btn-primary" onClick={handleComplete}>
-                Confirmar ✅
-              </button>
-            </div>
-          </div>
-        ) : (
-          <div className="photo-upload-area" onClick={() => fileInputRef.current.click()}>
-            <div className="upload-icon">📸</div>
-            <p>Toque para tirar ou<br />escolher uma foto</p>
-            <input
-              ref={fileInputRef}
-              type="file"
-              accept="image/*"
-              capture="environment"
-              style={{ display: "none" }}
-              onChange={handleFileChange}
-            />
-          </div>
-        )}
-      </div>
-    );
-  }
-
-  // ── BINGO GRID ────────────────────────────────────────────────────────────
   return (
-    <div className="screen bingo-screen">
-      <div className="bingo-header">
-        <h2 className="bingo-title">Foto Bingo 📸</h2>
-        <div className="progress-wrap">
-          <div className="progress-bar">
-            <div className="progress-fill" style={{ width: `${(completed / total) * 100}%` }} />
-          </div>
-          <span className="progress-label">{completed}/{total} missões</span>
-        </div>
-      </div>
-
-      <div className="bingo-grid">
-        {MISSIONS.map((m) => {
-          const done = !!progress[m.id];
-          return (
-            <button
-              key={m.id}
-              className={`mission-card ${done ? "done" : ""}`}
-              onClick={() => !done && handleMissionClick(m)}
-            >
-              {done && <div className="done-overlay">✅</div>}
-              <div className="mission-emoji">{m.emoji}</div>
-              <div className="mission-label">{m.title}</div>
-            </button>
-          );
-        })}
-      </div>
-
-      {allDone && (
-        <button className="btn-primary btn-winner" onClick={() => { setScreen("winner"); launchConfetti(); }}>
-          Ver meu Selo 🎖️
-        </button>
-      )}
-    </div>
+    <>
+      {screen === "home"    && <Home    onStart={() => setScreen("guest")} />}
+      {screen === "guest"   && <GuestEntry onSubmit={enterGuest} />}
+      {screen === "bingo"   && <BingoGrid  guest={guest} progress={progress} completed={completed} allDone={allDone} onMission={clickMission} onWinner={() => setScreen("winner")} />}
+      {screen === "mission" && mission && <MissionScreen mission={mission} status={status} onBack={() => { setScreen("bingo"); setMission(null); }} onSubmit={submitMedia} />}
+      {screen === "winner"  && <WinnerScreen guest={guest} completed={completed} />}
+    </>
   );
 }
