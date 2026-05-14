@@ -1,10 +1,23 @@
 import { useRef, useState } from "react";
+import {
+  Heart, Video, PenLine, Music, Sparkles, Users, Cake, Laugh, Camera,
+  ImageIcon, Film, Loader2, CheckCircle2, ArrowLeft,
+} from "lucide-react";
+
+const ICON_MAP = { Heart, Video, PenLine, Music, Sparkles, Users, Cake, Laugh, Camera };
+
+function MissionIcon({ name, size = 36 }) {
+  const Icon = ICON_MAP[name];
+  return Icon ? <Icon size={size} /> : null;
+}
+
+const TYPE_LABEL = { photo: "Foto", video: "Vídeo", any: "Foto ou Vídeo" };
 
 export default function MissionScreen({ mission, status, onBack, onSubmit }) {
   const [preview, setPreview]   = useState(null);
   const [previewUrl, setUrl]    = useState(null);
-  const photoRef = useRef();
-  const videoRef = useRef();
+  const photoRef    = useRef();
+  const videoRef    = useRef();
   const anyPhotoRef = useRef();
   const anyVideoRef = useRef();
 
@@ -19,43 +32,46 @@ export default function MissionScreen({ mission, status, onBack, onSubmit }) {
   if (status === "uploading") {
     return (
       <div className="status-screen">
-        <div className="status-spinner">🌸</div>
+        <div className="status-spinner"><Loader2 size={52} /></div>
         <h3>Enviando para o álbum...</h3>
-        <p>Sua mídia está indo direto para o álbum de João &amp; Camila 💕</p>
+        <p>Sua mídia está indo direto para o álbum de João &amp; Camila.</p>
       </div>
     );
   }
 
-  if (status === "success") {
+  if (status === "success" || status === "error") {
     return (
-      <div className="status-screen success">
-        <div className="status-icon">✅</div>
+      <div className="status-screen">
+        <div className="status-icon status-icon-ok"><CheckCircle2 size={64} /></div>
         <h3>Missão Cumprida!</h3>
-        <p>Sua foto/vídeo foi salvo no álbum dos noivos 🎉</p>
-      </div>
-    );
-  }
-
-  if (status === "error") {
-    return (
-      <div className="status-screen success">
-        <div className="status-icon">✅</div>
-        <h3>Missão Cumprida!</h3>
-        <p>Progresso salvo! (verifique a conexão para o envio ao álbum)</p>
+        <p>
+          {status === "success"
+            ? "Sua foto/vídeo foi salvo no álbum dos noivos."
+            : "Progresso salvo! Verifique a conexão para o envio ao álbum."}
+        </p>
       </div>
     );
   }
 
   return (
     <div className="mission-screen">
-      <button className="btn-back" onClick={onBack}>← Voltar</button>
+      <button className="btn-back" onClick={onBack}>
+        <ArrowLeft size={16} /> Voltar
+      </button>
 
       <div className="mission-hero">
-        <div className="mission-emoji-big">{mission.emoji}</div>
+        <div className="mission-icon-big">
+          <MissionIcon name={mission.icon} size={40} />
+        </div>
         <h2 className="mission-name">{mission.title}</h2>
         <p className="mission-desc">{mission.desc}</p>
         <div className="mission-type-badge">
-          {mission.type === "video" ? "🎥 Vídeo" : mission.type === "any" ? "📸 Foto ou 🎥 Vídeo" : "📸 Foto"}
+          {mission.type === "video"
+            ? <><Film size={13} /> Vídeo</>
+            : mission.type === "any"
+            ? <><Camera size={13} /> Foto ou <Film size={13} /> Vídeo</>
+            : <><Camera size={13} /> Foto</>
+          }
         </div>
       </div>
 
@@ -64,12 +80,12 @@ export default function MissionScreen({ mission, status, onBack, onSubmit }) {
           {(mission.type === "photo" || mission.type === "any") && (
             <>
               <button className="upload-btn" onClick={() => photoRef.current.click()}>
-                <span>📸</span>
+                <Camera size={28} className="upload-btn-icon" />
                 <strong>Tirar Foto</strong>
                 <small>Abrir câmera</small>
               </button>
               <button className="upload-btn" onClick={() => anyPhotoRef.current.click()}>
-                <span>🖼️</span>
+                <ImageIcon size={28} className="upload-btn-icon" />
                 <strong>Da Galeria</strong>
                 <small>Escolher foto</small>
               </button>
@@ -82,12 +98,12 @@ export default function MissionScreen({ mission, status, onBack, onSubmit }) {
           {(mission.type === "video" || mission.type === "any") && (
             <>
               <button className="upload-btn" onClick={() => videoRef.current.click()}>
-                <span>🎥</span>
+                <Video size={28} className="upload-btn-icon" />
                 <strong>Gravar Vídeo</strong>
                 <small>Abrir câmera</small>
               </button>
               <button className="upload-btn" onClick={() => anyVideoRef.current.click()}>
-                <span>📁</span>
+                <Film size={28} className="upload-btn-icon" />
                 <strong>Da Galeria</strong>
                 <small>Escolher vídeo</small>
               </button>
@@ -109,7 +125,7 @@ export default function MissionScreen({ mission, status, onBack, onSubmit }) {
               Trocar
             </button>
             <button className="btn-primary" onClick={() => onSubmit(preview)}>
-              Enviar ✅
+              Enviar
             </button>
           </div>
         </div>

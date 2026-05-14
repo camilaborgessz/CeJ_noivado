@@ -1,20 +1,20 @@
 import { useState } from "react";
 import Home from "./screens/Home.jsx";
-import GuestEntry from "./screens/GuestEntry.jsx";
-import BingoGrid from "./screens/BingoGrid.jsx";
-import MissionScreen from "./screens/MissionScreen.jsx";
-import WinnerScreen from "./screens/WinnerScreen.jsx";
+import GuestEntry from "./screens/Guestentry.jsx";
+import BingoGrid from "./screens/Bingogrid.jsx";
+import MissionScreen from "./screens/Missionscreen.jsx";
+import WinnerScreen from "./screens/Winnerscreen.jsx";
 
 export const MISSIONS = [
-  { id: 1, emoji: "💑", title: "Com os Noivos",      desc: "Tire uma foto com João e Camila. Esse registro é especial demais!", type: "photo" },
-  { id: 2, emoji: "💌", title: "Mensagem de Amor",   desc: "Grave um vídeo mandando uma mensagem especial para os noivos. Do coração!", type: "video" },
-  { id: 3, emoji: "📝", title: "Conselho dos Noivos",desc: "Preencha o cartãozinho com seu conselho e tire uma foto segurando ele.", type: "photo" },
-  { id: 4, emoji: "💃", title: "Na Pista!",           desc: "Mostre seus passos! Foto ou vídeo arrasando na pista de dança.", type: "any" },
-  { id: 5, emoji: "🥂", title: "Brinde!",             desc: "Capture o momento do brinde especial. Saúde ao amor deles!", type: "photo" },
-  { id: 6, emoji: "🤵", title: "Com os Padrinhos",   desc: "Tire uma foto com os padrinhos da festa.", type: "photo" },
-  { id: 7, emoji: "🎂", title: "Hora do Bolo",        desc: "Registre esse momento delicioso! Foto comendo o bolo dos noivos.", type: "photo" },
-  { id: 8, emoji: "🤣", title: "Momento Engraçado",  desc: "Capture algo divertido e inesquecível da festa!", type: "any" },
-  { id: 9, emoji: "❤️", title: "Selfie em Grupo",    desc: "Selfie criativa com pelo menos 3 convidados. Quanto mais gente, melhor!", type: "photo" },
+  { id: 1, icon: "Heart",    title: "Com os Noivos",      desc: "Tire uma foto com João e Camila. Esse registro é especial demais!", type: "photo" },
+  { id: 2, icon: "Video",    title: "Mensagem de Amor",   desc: "Grave um vídeo mandando uma mensagem especial para os noivos. Do coração!", type: "video" },
+  { id: 3, icon: "PenLine",  title: "Conselho dos Noivos",desc: "Preencha o cartãozinho com seu conselho e tire uma foto segurando ele.", type: "photo" },
+  { id: 4, icon: "Music",    title: "Na Pista!",           desc: "Mostre seus passos! Foto ou vídeo arrasando na pista de dança.", type: "any" },
+  { id: 5, icon: "Sparkles", title: "Brinde!",             desc: "Capture o momento do brinde especial. Saúde ao amor deles!", type: "photo" },
+  { id: 6, icon: "Users",    title: "Com os Padrinhos",   desc: "Tire uma foto com os padrinhos da festa.", type: "photo" },
+  { id: 7, icon: "Cake",     title: "Hora do Bolo",        desc: "Registre esse momento delicioso! Foto comendo o bolo dos noivos.", type: "photo" },
+  { id: 8, icon: "Laugh",    title: "Momento Especial",   desc: "Capture algo divertido e inesquecível da festa!", type: "any" },
+  { id: 9, icon: "Camera",   title: "Selfie em Grupo",    desc: "Selfie criativa com pelo menos 3 convidados. Quanto mais gente, melhor!", type: "photo" },
 ];
 
 function getKey(name) {
@@ -30,7 +30,6 @@ function saveProgress(name, data) {
   try { localStorage.setItem(getKey(name), JSON.stringify(data)); } catch {}
 }
 
-// ── Google Drive upload via Apps Script ────────────────────────────────────
 const DRIVE_URL = import.meta.env.VITE_DRIVE_UPLOAD_URL || "";
 
 async function uploadToDrive(file, guestName, mission) {
@@ -60,7 +59,7 @@ export default function App() {
   const [guest,    setGuest]    = useState("");
   const [progress, setProgress] = useState({});
   const [mission,  setMission]  = useState(null);
-  const [status,   setStatus]   = useState(null); // null|uploading|success|error
+  const [status,   setStatus]   = useState(null);
 
   const completed = Object.values(progress).filter(Boolean).length;
   const allDone   = completed === MISSIONS.length;

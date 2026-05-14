@@ -1,4 +1,7 @@
 import { useState } from "react";
+import { Gem } from "lucide-react";
+
+const DECOS = ["◆", "◇", "◆", "◇", "◆"];
 
 export default function GuestEntry({ onSubmit }) {
   const [name, setName] = useState("");
@@ -7,7 +10,7 @@ export default function GuestEntry({ onSubmit }) {
 
   function handle() {
     if (name.trim().length < 2) {
-      setError("Por favor, escreva seu nome completo 💕");
+      setError("Por favor, escreva seu nome completo.");
       setShake(true);
       setTimeout(() => setShake(false), 600);
       return;
@@ -17,15 +20,17 @@ export default function GuestEntry({ onSubmit }) {
 
   return (
     <div className="guest-screen">
-      <div className="petals-layer" aria-hidden>
-        {["🌸","✨","💕","🌺","💫"].map((p,i) => (
-          <span key={i} className="petal" style={{ "--i": i, "--total": 5 }}>{p}</span>
+      <div className="decos-layer" aria-hidden>
+        {DECOS.map((d, i) => (
+          <span key={i} className="deco-diamond" style={{ "--i": i }}>{d}</span>
         ))}
       </div>
 
       <div className="guest-card fade-in">
-        <div className="guest-icon">🌸</div>
-        <h2 className="guest-title">Olá, convidado!</h2>
+        <div className="guest-icon">
+          <Gem size={36} />
+        </div>
+        <h2 className="guest-title">Olá, convidado</h2>
         <p className="guest-sub">
           Como você se chama?<br/>
           Vamos guardar seu progresso pelo nome.
@@ -45,11 +50,11 @@ export default function GuestEntry({ onSubmit }) {
         </div>
 
         <button className="btn-primary" onClick={handle} disabled={!name.trim()}>
-          Vamos lá! 💕
+          Continuar
         </button>
 
         <p className="guest-note">
-          Se você já jogou antes, seu progresso será recuperado automaticamente ✓
+          Se você já jogou antes, seu progresso será recuperado automaticamente.
         </p>
       </div>
     </div>
